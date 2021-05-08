@@ -6,13 +6,14 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   ToastAndroid,
+  TextInput,
 } from "react-native";
 import * as Permissions from "expo-permissions";
 import { BarCodeScanner } from "expo-barcode-scanner";
 
 import Icon from "react-native-vector-icons/FontAwesome5";
 
-import * as firebase from "firebase";
+import firebase from "firebase";
 import db from "../config.js";
 
 export default class Transaction extends React.Component {
@@ -21,8 +22,8 @@ export default class Transaction extends React.Component {
     this.state = {
       hasPermission: null,
       scanned: false,
-      scannedStudentId: false,
-      scannedBookId: false,
+      scannedStudentId: " ",
+      scannedBookId: " ",
       scannedData: " ",
       btnState: "normal",
       transactionMsg: "",
@@ -83,90 +84,86 @@ export default class Transaction extends React.Component {
         alert("Book Returned!");
       }
     }
+  };
 
-    db.collection("Books")
-      .doc(this.state.scannedBookId)
-      .get()
-      .then((doc) => {
-        console.log(doc);
+  checkBookElgiblity = async () => {
+    const bookRef = await db
+      .collection("Books")
+      .where("bookId", "==", this.state.scannedBookId)
+      .get();
+    var transactionType = "";
+    if (bookRef.docs.length == 0) {
+      transactionType = false;
+    } else {
+      bookRef.docs.map((doc) => {
         var book = doc.data();
-
-        if (book.bookAvailablity) {
-          this.InitializeBookIssue();
-          transactionType = "Book issued";
-          ToastAndroid.show(transactionType, ToastAndroid.SHORT);
+        if (book.bookAvailability) {
+          transactionType = "Issue";
         } else {
-          this.InitializeBookReturn();
-          transactionType = "Book returned";
-          ToastAndroid.show(transactionType, ToastAndroid.SHORT);
+          transactionType = "Return";
         }
-
-        this.setState({
-          transactionMsg: transactionMsg,
-        });
       });
+
+      return transactionType;
+    }
   };
 
   checkStudentElgiblityBookReturn = async () => {
-    const transactionRef = db.collection("Transations")
-      .where("bookId", "===", this.state.scannedBookId).limit(1)
-      .get()
-      var isStudentElgible = '' 
-      transactionRef.docs.map( doc =>{
-          var lastBookTransaction = doc.data();
-          if (lastBookTransaction.noOfBooksIssued < 2){
-isStudentElgible = true;
-          }else{
-            isStudentElgible = false;
-            alert('Student has already issued 2 books')
-
-            this.setState({
-              scannedStudentId: " ",
-              scannedBookId: " ",
-            });
-          }
-        })
-      
-
-      return isStudentElgible
+    const transactionRef = await db
+      .collection("Transactions")
+      .where("bookId", "===", this.state.scannedBookId)
+      .limit(1)
+      .get();
+    var isStudentEligible = "";
+    transactionRef.docs.map((doc) => {
+      var lastBookTransaction = doc.data();
+      if (lastBookTransaction.studentId === this.state.scannedStudentId)
+        isStudentEligible = true;
+      else {
+        isStudentEligible = false;
+        alert("The book wasn't issued by this student!");
+        this.setState({
+          scannedStudentId: "",
+          scannedBookId: "",
+        });
+      }
+    });
+    return isStudentEligible;
   };
-
-
 
   checkStudentElgiblityBookIssue = async () => {
-    const studentRef = db      .collection("Students")
+    const studentRef = db
+      .collection("Students")
       .where("studentId", "===", this.state.scannedStudentId)
-      .get()
-      var isStudentElgible = '' 
-      if (studentRef.docs.length == 0){
-        this.setState({
-          scannedStudentId: " ",
-          scannedBookId: " ",
-        });
+      .get();
+    var isStudentElgible = "";
+    if (studentRef.docs.length == 0) {
+      this.setState({
+        scannedStudentId: " ",
+        scannedBookId: " ",
+      });
 
-        isStudentElgible = false;
-        alert('student Id does not exist!')
+      isStudentElgible = false;
+      alert("student Id does not exist!");
+    } else {
+      studentRef.docs.map((doc) => {
+        var student = doc.data();
+        if (student.noOfBooksIssued < 2) {
+          isStudentElgible = true;
+        } else {
+          isStudentElgible = false;
+          alert("Student has already issued 2 books");
 
-      }else{
-        studentRef.docs.map( doc =>{
-          var student = doc.data();
-          if (student.noOfBooksIssued < 2){
-isStudentElgible = true;
-          }else{
-            isStudentElgible = false;
-            alert('Student has already issued 2 books')
+          this.setState({
+            scannedStudentId: " ",
+            scannedBookId: " ",
+          });
+        }
+      });
+    }
 
-            this.setState({
-              scannedStudentId: " ",
-              scannedBookId: " ",
-            });
-          }
-        })
-      }
-
-      return isStudentElgible
+    return isStudentElgible;
   };
-
 
   InitializeBookIssue = async () => {
     db.collection("Transactions").add({
@@ -242,7 +239,7 @@ isStudentElgible = true;
               style={styles.input}
               onChangeText={(txt) => {
                 this.setState({
-                  scannedStudentId: txt,
+                  scannedStudentId: `${txt}`,
                 });
               }}
               value={this.state.scannedStudentId}
@@ -250,7 +247,7 @@ isStudentElgible = true;
 
             <TouchableOpacity
               style={styles.scan}
-              onPress={this.getCamPermissions(studentId)}
+              onPress={this.getCamPermissions(this.state.scannedStudentId)}
             >
               <Text>Scan Student Id </Text>
             </TouchableOpacity>
@@ -269,14 +266,16 @@ isStudentElgible = true;
 
             <TouchableOpacity
               style={styles.scan}
-              onPress={this.getCamPermissions(bookId)}
+              onPress={this.getCamPermissions(this.state.scannedBookId)}
             >
               <Text>Scan Book Id </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.scan}
-              onPress={this.handleTransaction()}
+              onPress={() => {
+                this.handleTransaction();
+              }}
             >
               <Text>Submit </Text>
             </TouchableOpacity>

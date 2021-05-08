@@ -1,4 +1,4 @@
-import * as firebase from "firebase";
+import firebase from "firebase";
 require("@firebase/firestore");
 
 var firebaseConfig = {
@@ -11,8 +11,7 @@ var firebaseConfig = {
   measurementId: "G-D5W3NMBXX6",
 };
 // Initialize Firebase
-const firebaseApp = firebase.initializeApp(firebaseConfig);
-
-firebase.initializeApp(firebaseConfig);
-
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
 export default firebase.firestore();

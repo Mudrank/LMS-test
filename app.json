@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Wireless-Library-management",
-    "slug": "Wireless-Library-management",
+    "name": "LMS2",
+    "slug": "LMS2",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,9 +13,7 @@
     "updates": {
       "fallbackToCacheTimeout": 0
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true
     },
@@ -24,7 +22,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.mudrankg.WirelessLibrarymanagement"
+      "package": "com.mudrankg.LMS2"
     },
     "web": {
       "favicon": "./assets/favicon.png"
